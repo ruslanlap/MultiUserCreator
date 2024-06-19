@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+# ANSI color codes and emoji for readability
+GREEN=$(tput setaf 2)   # 🟢
+YELLOW=$(tput setaf 3)  # 🟡
+RESET=$(tput sgr0)      # 🔄
+
+# Function to display loading animation
+function loading_animation() {
+    local pid=$!
+    local delay=0.15
+    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+
+    while ps -p $pid >/dev/null; do
+        local temp=${spin#?}
+        printf " [%c] " "$spin"
+        local spin=$temp${spin%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+
+    printf "    \b\b\b\b"
+}
+
+printf "${GREEN}🌟 Starting GitHub release process...${RESET}\n"
+
+# Authenticate with GitHub CLI if not already authenticated
+if ! gh auth status >/dev/null 2>&1; then
+    printf "${YELLOW}🔑 Please authenticate with GitHub CLI...${RESET}\n"
+    gh auth login
+fi
+
+# Get the latest commit hash from the main branch
+latest_commit=$(git rev-parse HEAD)
+printf "${GREEN}🔄 Latest commit hash: ${latest_commit}${RESET}\n"
+
+# Prompt the user for release information
+read -p "Enter the tag name for the release: " tag_name
+read -p "Enter the release title: " release_title
+read -p "Enter the release description: " release_description
+
+# Create the release on GitHub
+(
+    gh release create "$tag_name" \
+        --title "$release_title" \
+        --notes "$release_description" \
+        "$latest_commit"
+) & loading_animation
+
+printf "${GREEN}✅ GitHub release created successfully!${RESET}\n"
+
