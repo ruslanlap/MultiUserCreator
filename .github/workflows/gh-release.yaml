@@ -3,22 +3,32 @@ name: Create release
 on:
   push:
     tags:
-      - v*
+      - 'v*'  # Trigger on tags starting with 'v'
 
 permissions:
-  contents: write
+  contents: write  # Ensure write permissions
 
 jobs:
   release:
     name: Release pushed tag
     runs-on: ubuntu-22.04
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Checkout the repository to access its contents
+
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          gh release create "$tag" \
+          # Remove leading 'refs/tags/' from the tag name
+          tag_name=$(echo "$tag" | sed 's/refs\/tags\///')
+          
+          # Create the release using GitHub CLI (`gh`)
+          gh release create "$tag_name" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="${GITHUB_REPOSITORY#*/} ${tag#v}" \
-              --generate-notes
+              --title="${GITHUB_REPOSITORY#*/} ${tag_name#v}" \
+              --notes "Release notes for $tag_name"
+
